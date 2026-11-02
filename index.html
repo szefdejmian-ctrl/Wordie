@@ -11,9 +11,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
-<!-- Nowa ikona Wordie -->
-<link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjExMiIgZmlsbD0iIzE0MTQxNiIgc3Ryb2tlPSIjRkY4QTFGIiBzdHJva2Utd2lkdGg9IjEyIi8+PHRleHQgeD0iMjU2IiB5PSIzODAiIGZvbnQtZmFtaWx5PSJzZXJpZiIgZm9udC1zaXplPSIzMjAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjRkY4QTFGIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5XPC90ZXh0Pjx0ZXh0IHg9IjEwMCIgeT0iMjQwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSI2MCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNGRjhBMUYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIHRyYW5zZm9ybT0icm90YXRlKC0xNSAxMDAgMjQwKSI+azwvdGV4dD48dGV4dCB4PSI0MjAiIHk9IjI4MCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjRkY4QTFGIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiB0cmFuc2Zvcm09InJvdGF0ZSgyMCA0MjAgMjgwKSI+YzwvdGV4dD48dGV4dCB4PSIxNjAiIHk9IjQ0MCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNTUiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjRkY4QTFGIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiB0cmFuc2Zvcm09InJvdGF0ZSgxMCAxNjAgNDQwKSI+YTwvdGV4dD48L3N2Zz4=">
-<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjExMiIgZmlsbD0iIzE0MTQxNiIgc3Ryb2tlPSIjRkY4QTFGIiBzdHJva2Utd2lkdGg9IjEyIi8+PHRleHQgeD0iMjU2IiB5PSIzODAiIGZvbnQtZmFtaWx5PSJzZXJpZiIgZm9udC1zaXplPSIzMjAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjRkY4QTFGIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5XPC90ZXh0Pjx0ZXh0IHg9IjEwMCIgeT0iMjQwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSI2MCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNGRjhBMUYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIHRyYW5zZm9ybT0icm90YXRlKC0xNSAxMDAgMjQwKSI+azwvdGV4dD48dGV4dCB4PSI0MjAiIHk9IjI4MCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjRkY4QTFGIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiB0cmFuc2Zvcm09InJvdGF0ZSgyMCA0MjAgMjgwKSI+YzwvdGV4dD48dGV4dCB4PSIxNjAiIHk9IjQ0MCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNTUiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjRkY4QTFGIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiB0cmFuc2Zvcm09InJvdGF0ZSgxMCAxNjAgNDQwKSI+YTwvdGV4dD48L3N2Zz4=">
 <style>
 :root {
   --bg: #141416;
@@ -201,21 +198,6 @@ input[type="range"]:active::-moz-range-thumb { transform: scale(1.2); }
 <div id="app"></div>
 
 <script>
-const swCode = `
-  const CACHE_NAME = 'latina-v2';
-  self.addEventListener('install', e => self.skipWaiting());
-  self.addEventListener('fetch', e => {
-    if(e.request.url.includes('fonts.')) {
-      e.respondWith(caches.match(e.request).then(r => r || fetch(e.request).then(res => {
-        return caches.open(CACHE_NAME).then(c => { c.put(e.request, res.clone()); return res; });
-      })));
-    } else {
-      e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
-    }
-  });
-`;
-const swBlob = new Blob([swCode], {type: 'application/javascript'});
-if('serviceWorker' in navigator) navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(()=>{});
 
 // JĘZYKI (Profile)
 const PROFILES = {
@@ -223,17 +205,6 @@ const PROFILES = {
   'en': { id: 'en', name: 'Angielski', loc: 'angielsku', flag: '<span style="font-size:16px; font-weight:800;">EN</span>' }
 };
 
-// Dodanie manifestu z nową ikoną dla poprawnego działania jako PWA (iOS/Android)
-const manifest = {
-  name: "Lingua Latina", short_name: "Latina", display: "standalone", background_color: "#141416", theme_color: "#141416",
-  icons: [
-    { src: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgcng9IjExMiIgZmlsbD0iIzE0MTQxNiIgc3Ryb2tlPSIjRkY4QTFGIiBzdHJva2Utd2lkdGg9IjEyIi8+PHRleHQgeD0iMjU2IiB5PSIzODAiIGZvbnQtZmFtaWx5PSJzZXJpZiIgZm9udC1zaXplPSIzMjAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjRkY4QTFGIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5XPC90ZXh0Pjx0ZXh0IHg9IjEwMCIgeT0iMjQwIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC1zaXplPSI2MCIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiNGRjhBMUYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIHRyYW5zZm9ybT0icm90YXRlKC0xNSAxMDAgMjQwKSI+azwvdGV4dD48dGV4dCB4PSI0MjAiIHk9IjI4MCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNTAiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjRkY4QTFGIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiB0cmFuc2Zvcm09InJvdGF0ZSgyMCA0MjAgMjgwKSI+YzwvdGV4dD48dGV4dCB4PSIxNjAiIHk9IjQ0MCIgZm9udC1mYW1pbHk9InNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iNTUiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjRkY4QTFGIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiB0cmFuc2Zvcm09InJvdGF0ZSgxMCAxNjAgNDQwKSI+YTwvdGV4dD48L3N2Zz4=", sizes: "512x512", type: "image/svg+xml" }
-  ]
-};
-const manifestLink = document.createElement('link');
-manifestLink.rel = 'manifest';
-manifestLink.href = 'data:application/manifest+json,' + encodeURIComponent(JSON.stringify(manifest));
-document.head.appendChild(manifestLink);
 
 // Utilities
 const esc = t => (t||'').toString().replace(/[&<>'"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
