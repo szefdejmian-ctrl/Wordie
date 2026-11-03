@@ -136,7 +136,24 @@ input[type="range"]:active::-moz-range-thumb { transform: scale(1.2); }
 .pinned .pin-icon { fill: var(--orange); stroke: var(--orange); filter: drop-shadow(0 0 4px var(--bg-glow)); }
 
 .status-row { display: flex; gap: 4px; margin-top: 8px; width: 100%; }
-.st-btn { flex: 1; min-width: 0; padding: 6px 2px; font-size: 14px; font-weight: 600; border: 1px solid var(--border); background: var(--inner-bg); color: var(--text-sub); border-radius: 10px; word-break: break-word; line-height: 1.2; }
+.st-btn { 
+  flex: 1; 
+  min-width: 0; 
+  padding: 6px 1px; 
+  font-size: 13px; 
+  font-weight: 600; 
+  border: 1px solid var(--border); 
+  background: var(--inner-bg); 
+  color: var(--text-sub); 
+  border-radius: 10px; 
+  word-break: normal; 
+  overflow-wrap: break-word; 
+  line-height: 1.1; 
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  text-align: center; 
+}
 
 /* Pinned compact */
 .pin-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); min-height: 44px; }
@@ -191,17 +208,14 @@ input[type="range"]:active::-moz-range-thumb { transform: scale(1.2); }
 @keyframes fadeScale { to { opacity: 0; transform: scale(0.8); } }
 @keyframes popAnim { 0% { transform: scale(1) rotate(0); } 50% { transform: scale(1.35) rotate(-16deg); } 100% { transform: scale(1) rotate(0); } }
 
-@media (max-width: 350px) {
+@media (max-width: 400px) {
   .tab { font-size: 14px; padding: 4px; }
-  .st-btn { font-size: 13px; }
+  .st-btn { font-size: 11px; padding: 6px 0; letter-spacing: -0.2px; }
   #app { padding: 12px 8px; }
 }
 @media (max-width: 300px) { body { overflow-x: auto; } }
 </style>
-</head>
-<body>
-<div id="app"></div>
-
+  
 <script>
 
 // JĘZYKI (Profile)
