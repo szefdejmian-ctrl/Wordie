@@ -426,8 +426,11 @@ function renderHeader() {
   return `
     <div style="display:flex; justify-content:space-between; align-items:center; width:100%; position:relative; margin-bottom:8px;">
       <div style="width:44px"></div>
-      <h1 style="cursor:pointer;" ${_a('set:home')} title="Wróć do strony głównej">Wordie</h1>
+      <h1 style="cursor:pointer; -webkit-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent;" ${_a('set:home')} title="Wróć do strony głównej">Wordie</h1>
       <button class="glass" style="width:44px; height:44px; border-radius:14px; font-size:20px; padding:0; display:flex; justify-content:center; align-items:center;" ${_a('lang:tog')}>${p.flag}</button>
+    </div>
+  `;
+}
       
       ${state.showLangMenu ? `
         <div class="glass card animate-slide" style="position:absolute; top:52px; right:0; z-index:100; padding:12px; gap:8px; min-width:160px; box-shadow: 0 10px 30px rgba(0,0,0,0.6);">
