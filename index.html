@@ -7,10 +7,11 @@
 <meta name="color-scheme" content="dark">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<title>Lingua Latina</title>
+<title>Wordie</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Crafty+Girls&display=swap" rel="stylesheet">
 <style>
 :root {
   --bg: #141416;
@@ -20,6 +21,7 @@
   --err-bg: #E5484D;
   --err-text: #FF6B63;
   --orange: #FF8A1F;
+  --bg-glow: rgba(255, 138, 31, 0.2);
   --orange-btn-text: #1A1A1C;
   --placeholder: #A5A5AA;
   --disabled-title: #C8C8CC;
@@ -39,7 +41,7 @@ body { margin: 0; min-height: 100vh; display: flex; flex-direction: column; alig
 /* Soft animated background glows */
 html::before, body::before, body::after {
   content: ''; position: fixed; z-index: -1; border-radius: 50%;
-  background: radial-gradient(closest-side, rgba(255,138,31,0.2), transparent);
+  background: radial-gradient(closest-side, var(--bg-glow), transparent);
 }
 html::before { width: 80vmax; height: 80vmax; top: -20vmax; left: -20vmax; animation: drift1 40s alternate infinite ease-in-out; }
 body::before { width: 90vmax; height: 90vmax; bottom: -30vmax; right: -10vmax; animation: drift2 52s alternate infinite ease-in-out; }
@@ -51,7 +53,7 @@ body::after { width: 50vmax; height: 50vmax; top: 40vh; right: -20vmax; animatio
 
 #app { width: 100%; max-width: 560px; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
 
-h1 { font-family: 'Cormorant Garamond', serif; font-size: 30px; font-weight: 700; margin: 0; text-align: center; color: var(--text-main); }
+h1 { font-family: 'Crafty Girls', cursive; font-size: 44px; font-weight: 700; margin: 0; text-align: center; color: var(--text-main); text-shadow: 0 2px 4px rgba(0,0,0,0.4); }
 h2 { font-family: 'Nunito Sans', system-ui, sans-serif; font-size: 17px; font-weight: 700; margin: 0 0 8px 0; color: var(--text-main); }
 p { margin: 0 0 8px 0; font-family: 'Nunito Sans', system-ui, sans-serif; font-size: 15px; font-weight: 400; color: var(--text-main); }
 .sub { font-size: 15px; font-weight: 500; color: var(--text-sub); margin-bottom: 4px; }
@@ -73,11 +75,14 @@ p { margin: 0 0 8px 0; font-family: 'Nunito Sans', system-ui, sans-serif; font-s
 
 /* Orange Glass */
 .orange-glass {
-  background: linear-gradient(180deg, rgba(255,255,255,0.32), transparent 55%), rgba(255,138,31,0.9) !important;
+  background: linear-gradient(180deg, rgba(255,255,255,0.32), transparent 55%), var(--orange) !important;
   border: 1px solid rgba(255,255,255,0.38) !important;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 4px 16px rgba(255,138,31,0.28) !important;
-  color: var(--orange-btn-text) !important; 
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), 0 4px 16px var(--bg-glow) !important;
+  color: #ffffff !important; 
   font-weight: 700 !important;
+}
+.orange-glass svg {
+  fill: #ffffff !important;
 }
 
 button { font-family: 'Nunito Sans', system-ui, sans-serif; font-size: 15px; font-weight: 600; color: var(--text-main); min-height: 44px; border-radius: 14px; cursor: pointer; transition: transform 0.2s; outline: none; display: inline-flex; align-items: center; justify-content: center; text-align: center; }
@@ -104,8 +109,8 @@ input[type="range"] { flex: 1; -webkit-appearance: none; appearance: none; backg
 input[type="range"]::-webkit-slider-runnable-track { width: 100%; height: 6px; border-radius: 3px; background: linear-gradient(90deg, var(--orange) var(--pf), rgba(255,255,255,0.15) var(--pf)); border: none; }
 input[type="range"]::-moz-range-progress { background: var(--orange); height: 6px; border-radius: 3px; }
 input[type="range"]::-moz-range-track { background: rgba(255,255,255,0.15); height: 6px; border-radius: 3px; }
-input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; height: 18px; width: 18px; border-radius: 50%; background: var(--orange); border: 1px solid rgba(255,255,255,0.5); margin-top: -6px; box-shadow: 0 0 10px rgba(255,138,31,0.5); transition: transform 0.1s; }
-input[type="range"]::-moz-range-thumb { height: 18px; width: 18px; border-radius: 50%; background: var(--orange); border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 0 10px rgba(255,138,31,0.5); transition: transform 0.1s; box-sizing: border-box; }
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; height: 18px; width: 18px; border-radius: 50%; background: var(--orange); border: 1px solid rgba(255,255,255,0.5); margin-top: -6px; box-shadow: 0 0 10px var(--bg-glow); transition: transform 0.1s; }
+input[type="range"]::-moz-range-thumb { height: 18px; width: 18px; border-radius: 50%; background: var(--orange); border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 0 10px var(--bg-glow); transition: transform 0.1s; box-sizing: border-box; }
 input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.2); }
 input[type="range"]:active::-moz-range-thumb { transform: scale(1.2); }
 .num-input { width: 84px !important; text-align: center; font-weight: 700 !important; }
@@ -128,7 +133,7 @@ input[type="range"]:active::-moz-range-thumb { transform: scale(1.2); }
 .pin-btn, .del-btn { width: 40px; height: 40px; border: none; background: transparent; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; padding: 0; }
 .del-btn { font-size: 24px; font-weight: 400; color: var(--text-sub); font-family: 'Nunito Sans', system-ui, sans-serif; line-height: 1; }
 .pin-icon { width: 24px; height: 24px; fill: none; stroke: var(--text-sub); stroke-width: 1.6; stroke-linejoin: round; }
-.pinned .pin-icon { fill: var(--orange); stroke: var(--orange); filter: drop-shadow(0 0 4px rgba(255,138,31,0.6)); }
+.pinned .pin-icon { fill: var(--orange); stroke: var(--orange); filter: drop-shadow(0 0 4px var(--bg-glow)); }
 
 .status-row { display: flex; gap: 4px; margin-top: 8px; width: 100%; }
 .st-btn { flex: 1; min-width: 0; padding: 6px 2px; font-size: 14px; font-weight: 600; border: 1px solid var(--border); background: var(--inner-bg); color: var(--text-sub); border-radius: 10px; word-break: break-word; line-height: 1.2; }
@@ -168,7 +173,7 @@ input[type="range"]:active::-moz-range-thumb { transform: scale(1.2); }
 .ie-tile svg { fill: currentColor; width: 24px; height: 24px; }
 .panel { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows 0.3s, opacity 0.3s; width: 100%; }
 .panel.open { grid-template-rows: 1fr; opacity: 1; margin-top: 12px; }
-.panel-inner { overflow: hidden; display: flex; flex-direction: column; gap: 12px; }
+.panel-inner { overflow: hidden; display: flex; flex-direction: column; gap: 12px; padding: 2px; }
 .file-lbl { display: inline-flex; align-items: center; justify-content: center; background: var(--inner-bg); border: 1px dashed rgba(255,255,255,0.3); border-radius: 14px; min-height: 44px; font-size: 15px; font-weight: 600; color: var(--text-main); cursor: pointer; padding: 0 16px; text-align: center; }
 
 /* Animations */
@@ -204,7 +209,6 @@ const PROFILES = {
   'la': { id: 'la', name: 'Łacina', loc: 'łacinie', flag: '🏛️' },
   'en': { id: 'en', name: 'Angielski', loc: 'angielsku', flag: '<span style="font-size:16px; font-weight:800;">EN</span>' }
 };
-
 
 // Utilities
 const esc = t => (t||'').toString().replace(/[&<>'"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
@@ -257,7 +261,17 @@ function loadData() {
       }
     }
   } catch(e) { console.error("Load err", e); state.words = []; state.sess = []; }
+  
+  // Aplikacja motywu
+  if (state.lang === 'en') {
+    document.documentElement.style.setProperty('--orange', '#26619c');
+    document.documentElement.style.setProperty('--bg-glow', 'rgba(38, 97, 156, 0.2)');
+  } else {
+    document.documentElement.style.setProperty('--orange', '#FF8A1F');
+    document.documentElement.style.setProperty('--bg-glow', 'rgba(255, 138, 31, 0.2)');
+  }
 }
+
 function saveData() {
   try { localStorage.setItem('lat_v2_' + state.lang, JSON.stringify({words: state.words, sess: state.sess})); } catch(e) {}
 }
@@ -390,7 +404,7 @@ function renderHeader() {
   return `
     <div style="display:flex; justify-content:space-between; align-items:center; width:100%; position:relative; margin-bottom:8px;">
       <div style="width:44px"></div>
-      <h1>Lingua Latina</h1>
+      <h1>Wordie</h1>
       <button class="glass" style="width:44px; height:44px; border-radius:14px; font-size:20px; padding:0; display:flex; justify-content:center; align-items:center;" ${_a('lang:tog')}>${p.flag}</button>
       
       ${state.showLangMenu ? `
@@ -617,7 +631,7 @@ function renderBase() {
   
   let wl = '';
   if (state.words.length === 0) {
-    wl = `<p style="text-align:center;margin:24px 0">Baza jest pusta. Dodaj pierwsze słowo albo zacznij od kilku przykładowych.</p><button class="btn-main glass-inner" ${_a('b:sample')}>Dodaj przykładowe słowa</button>`;
+    wl = `<p style="text-align:center;margin:24px 0">Baza jest pusta. Dodaj pierwsze słowo.</p>`;
   } else if (list.length === 0) {
     wl = `<p style="text-align:center;margin:24px 0;color:var(--text-sub)">Brak słów w tej grupie.</p>`;
   } else {
@@ -667,14 +681,14 @@ function renderBase() {
   <div id="imp-panel" class="panel glass card ${ip==='imp'?'open':''}" style="margin-top:0">
     <div class="panel-inner">
       <p style="font-size:14px;color:var(--text-sub)">Wklej listę z Excela, Arkuszy Google lub innego źródła: jedno słowo w wierszu, wyraz docelowy i polski rozdzielone tabulatorem, średnikiem lub przecinkiem. Opcjonalnie kolejne kolumny: status i przypięcie (tak/nie).</p>
-      <textarea id="imp_txt" placeholder="słowo;tłumaczenie" oninput="gs._txt=this.value; document.querySelector('[data-a=\\'ie:txt\\']').click()">${esc(iState.txt)}</textarea>
-      <label class="file-lbl"><input type="file" id="imp_file" accept=".csv,.txt" style="display:none" onchange="gs._f=this; document.querySelector('[data-a=\\'ie:file\\']').click()">${esc(iState.file || 'Wybierz plik')}</label>
+      <textarea id="imp_txt" placeholder="słowo;tłumaczenie">${esc(iState.txt)}</textarea>
+      <label class="file-lbl"><input type="file" id="imp_file" accept=".csv,.txt" style="display:none" ${_a('ie:file')}>${esc(iState.file || 'Wybierz plik')}</label>
       <div class="sub" style="margin-top:4px">Status importowanych słów</div>
-      <select onchange="gs._st=this.value; document.querySelector('[data-a=\\'ie:st\\']').click()">
+      <select ${_a('ie:st')}>
         <option value="new" ${iState.defSt==='new'?'selected':''}>Do nauki</option><option value="review" ${iState.defSt==='review'?'selected':''}>Do utrwalenia</option><option value="mastered" ${iState.defSt==='mastered'?'selected':''}>Opanowane</option>
       </select>
       <div class="sub" style="margin-top:4px">Duplikaty</div>
-      <select onchange="gs._dup=this.value; document.querySelector('[data-a=\\'ie:dup\\']').click()">
+      <select ${_a('ie:dup')}>
         <option value="skip" ${iState.dupMode==='skip'?'selected':''}>Pomiń</option><option value="upd" ${iState.dupMode==='upd'?'selected':''}>Zaktualizuj tłumaczenie istniejących</option>
       </select>
       <button class="btn-main glass-inner" style="margin-top:8px" ${_a('ie:chk')}>Sprawdź i pokaż podgląd</button>
@@ -849,82 +863,104 @@ document.body.addEventListener('click', e => {
         let id = parseInt(p[2]), w = state.words.find(x=>x.id===id);
         if(w) { w.st = p[3]; w.man = 10; let b=getLvlBands(w.st); w.lvl = Math.max(b.min, Math.min(b.max, w.lvl||0)); state.undoWords = null; saveData(); render(); } return;
       }
-      if (p[1] === 'sample') {
-        let s = state.lang === 'en' ? [['water','woda'],['earth','ziemia'],['friend','przyjaciel'],['girl','dziewczyna']] :
-                [['aqua','woda'],['terra','ziemia'],['amicus','przyjaciel'],['puella','dziewczyna'],['agricola','rolnik'],['dominus','pan'],['servus','niewolnik'],['bellum','wojna'],['pax','pokój'],['lux','światło'],['vita','życie'],['amor','miłość']];
-        let lb = getLvlBands('new');
-        s.forEach(x => { if(!state.words.some(w=>norm(w.la)===norm(x[0]))) state.words.push({id:getNewId(), la:x[0], pl:x[1], st:'new', pin:0, ok:0, bad:0, last:Date.now(), lvl:lb.def, sk:0, man:0}); });
-        state.undoWords = null; saveData(); render(); return;
-      }
     }
     if (p[0] === 'ie') {
       if (p[1] === 'imp') { state.importPanel = state.importPanel==='imp'?'':'imp'; if(state.importPanel) setTimeout(()=>window.scrollTo({top:document.body.scrollHeight, behavior:'smooth'}), 100); render(); return; }
       if (p[1] === 'exp') { state.importPanel = state.importPanel==='exp'?'':'exp'; if(state.importPanel) setTimeout(()=>window.scrollTo({top:document.body.scrollHeight, behavior:'smooth'}), 100); render(); return; }
-      if (p[1] === 'txt' || p[1] === 'file' || p[1] === 'st' || p[1] === 'dup') {
+      if (p[1] === 'txt' || p[1] === 'st' || p[1] === 'dup') {
         if(!state.importState) state.importState = {txt:'', dupMode:'skip', defSt:'new'};
-        if(p[1]==='txt') state.importState.txt = gs._txt;
-        if(p[1]==='st') state.importState.defSt = gs._st;
-        if(p[1]==='dup') state.importState.dupMode = gs._dup;
-        if(p[1]==='file' && gs._f && gs._f.files[0]) {
+        if(p[1]==='st') state.importState.defSt = document.querySelector('select[data-a="ie:st"]').value;
+        if(p[1]==='dup') state.importState.dupMode = document.querySelector('select[data-a="ie:dup"]').value;
+        state.importState.chkMsg = ''; 
+        render(); 
+        return;
+      }
+      
+      if (p[1] === 'file') {
+        if(!state.importState) state.importState = {txt:'', dupMode:'skip', defSt:'new'};
+        let fileInput = document.getElementById('imp_file');
+        if (fileInput && fileInput.files.length > 0) {
+          let file = fileInput.files[0];
           let r = new FileReader();
           r.onload = e => {
-            let t = e.target.result;
-            if(t.includes('')) { let r2 = new FileReader(); r2.onload = e2 => { state.importState.txt = e2.target.result; state.importState.file = gs._f.files[0].name; state.importState.chkMsg = ''; render(); }; r2.readAsText(gs._f.files[0], 'windows-1250'); }
-            else { state.importState.txt = t; state.importState.file = gs._f.files[0].name; state.importState.chkMsg = ''; render(); }
+            state.importState.txt = e.target.result;
+            state.importState.file = file.name;
+            state.importState.chkMsg = '';
+            render();
           };
-          r.readAsText(gs._f.files[0]);
-          return;
+          r.readAsText(file);
         }
-        state.importState.chkMsg = ''; render(); return;
+        return;
       }
+
       if (p[1] === 'chk') {
-        let ist = state.importState;
-        if (!ist.txt.trim()) { ist.chkMsg = "Pole jest puste. Wklej listę słów albo wybierz plik."; ist.canImp = false; render(); return; }
-        
-        let lines = ist.txt.split(/\r?\n/).filter(x=>x.trim()).slice(0,8);
-        let sT = lines.filter(x=>x.includes('\t')).length;
-        let sS = lines.filter(x=>x.includes(';')).length;
-        let sC = lines.filter(x=>x.includes(',')).length;
-        ist.sep = sT > 0 ? '\t' : (sS >= sC ? ';' : ',');
-        
-        let parsed = parseCSV(ist.txt.replace(/^\uFEFF/, ''), ist.sep);
-        if(parsed.length && norm(parsed[0][0]).match(/^(lacina|latin|lacinski|slowo|haslo|angielski|niemiecki|word)$/) && norm(parsed[0][1]||'').match(/^(polski|polish|tlumaczenie|znaczenie|przeklad)$/)) parsed.shift();
-        
-        ist.toAdd = []; ist.toUpd = []; ist.errLog = []; ist.ex = []; ist.errs = 0; ist.dup = 0; ist.dupUp = 0;
-        let bN = state.words.map(w=>norm(w.la));
-        let cN = new Set();
-        
-        parsed.forEach((r, idx) => {
-          let la = (r[0]||'').replace(/\s+/g,' ').trim(), pl = (r[1]||'').replace(/\s+/g,' ').trim();
-          if(!la) { ist.errs++; if(ist.errLog.length<15) ist.errLog.push(`Wiersz ${idx+1}: brak słowa w języku obcym`); return; }
-          if(!pl) { ist.errs++; if(ist.errLog.length<15) ist.errLog.push(`Wiersz ${idx+1}: brak tłumaczenia (sprawdź separator)`); return; }
-          let nla = norm(la);
-          let rawSt = norm(r[2]||''), st = ist.defSt;
-          if(rawSt.includes('nauki')||rawSt==='new') st='new'; else if(rawSt.includes('utrwalenia')||rawSt==='review') st='review'; else if(rawSt.includes('opanowane')||rawSt==='mastered') st='mastered';
-          let pin = (norm(r[3]||'').match(/^(tak|yes|true|1|x)$/)) ? 1 : 0;
-          let lvl = parseInt(r[4]); if(isNaN(lvl)) lvl = getLvlBands(st).def;
-          let ok = parseInt(r[5])||0, bad = parseInt(r[6])||0;
+        try {
+          // Pobranie na żywo wartości z pola textarea (pomija oninput)
+          let txtArea = document.getElementById('imp_txt');
+          if (txtArea) state.importState.txt = txtArea.value;
           
-          if(bN.includes(nla) || cN.has(nla)) {
-            ist.dup++;
-            if(ist.dupMode === 'upd') {
-              let tgt = ist.toUpd.find(x=>x.nla===nla) || state.words.find(w=>norm(w.la)===nla);
-              if(tgt && tgt.pl !== pl) {
-                ist.dupUp++;
-                ist.toUpd.push({id: tgt.id, la: tgt.la, pl, st, pin, ok, bad, lvl, last: Date.now(), man: 10, sk: 0, nla}); 
-              }
+          let ist = state.importState;
+          if (!ist.txt || !ist.txt.trim()) { ist.chkMsg = "Pole jest puste. Wklej listę słów albo wybierz plik."; ist.canImp = false; render(); return; }
+          
+          let lines = ist.txt.split(/\r?\n/).filter(x=>x.trim()).slice(0,8);
+          let sT = lines.filter(x=>x.includes('\t')).length;
+          let sS = lines.filter(x=>x.includes(';')).length;
+          let sC = lines.filter(x=>x.includes(',')).length;
+          ist.sep = sT > 0 ? '\t' : (sS >= sC ? ';' : ',');
+          
+          let parsed = parseCSV(ist.txt.replace(/^\uFEFF/, ''), ist.sep);
+          
+          if (parsed.length > 0) {
+            let col0 = parsed[0][0] ? norm(parsed[0][0]) : '';
+            let col1 = parsed[0][1] ? norm(parsed[0][1]) : '';
+            if (/^(lacina|latin|lacinski|slowo|haslo|angielski|niemiecki|word)$/.test(col0) && /^(polski|polish|tlumaczenie|znaczenie|przeklad)$/.test(col1)) {
+              parsed.shift();
             }
-          } else {
-            cN.add(nla);
-            ist.toAdd.push({id: getNewId()+idx, la, pl, st, pin, ok, bad, last: Date.now(), lvl, sk: 0, man: 0});
-            if(ist.ex.length<3) ist.ex.push(`${esc(la)} → ${esc(pl)}`);
           }
-        });
-        if(ist.errs > 15) ist.errLog.push(`…i ${ist.errs-15} kolejnych`);
-        ist.n = ist.toAdd.length;
-        ist.chkMsg = "ok";
-        ist.canImp = ist.toAdd.length > 0 || (ist.dupMode==='upd' && ist.dupUp > 0);
-        render(); return;
+          
+          ist.toAdd = []; ist.toUpd = []; ist.errLog = []; ist.ex = []; ist.errs = 0; ist.dup = 0; ist.dupUp = 0;
+          let bN = state.words.map(w=>norm(w.la||''));
+          let cN = new Set();
+          
+          parsed.forEach((r, idx) => {
+            let la = (r[0]||'').replace(/\s+/g,' ').trim(), pl = (r[1]||'').replace(/\s+/g,' ').trim();
+            if(!la) { ist.errs++; if(ist.errLog.length<15) ist.errLog.push(`Wiersz ${idx+1}: brak słowa docelowego`); return; }
+            if(!pl) { ist.errs++; if(ist.errLog.length<15) ist.errLog.push(`Wiersz ${idx+1}: brak tłumaczenia`); return; }
+            
+            let nla = norm(la);
+            let rawSt = norm(r[2]||''), st = ist.defSt;
+            if(rawSt.includes('nauki')||rawSt==='new') st='new'; else if(rawSt.includes('utrwalenia')||rawSt==='review') st='review'; else if(rawSt.includes('opanowane')||rawSt==='mastered') st='mastered';
+            
+            let pin = (norm(r[3]||'').match(/^(tak|yes|true|1|x)$/)) ? 1 : 0;
+            let lvl = parseInt(r[4]); if(isNaN(lvl)) lvl = getLvlBands(st).def;
+            let ok = parseInt(r[5])||0, bad = parseInt(r[6])||0;
+            
+            if(bN.includes(nla) || cN.has(nla)) {
+              ist.dup++;
+              if(ist.dupMode === 'upd') {
+                let tgt = ist.toUpd.find(x=>x.nla===nla) || state.words.find(w=>norm(w.la||'')===nla);
+                if(tgt && tgt.pl !== pl) {
+                  ist.dupUp++;
+                  ist.toUpd.push({id: tgt.id, la: tgt.la, pl, st, pin, ok, bad, lvl, last: Date.now(), man: 10, sk: 0, nla}); 
+                }
+              }
+            } else {
+              cN.add(nla);
+              ist.toAdd.push({id: getNewId()+idx, la, pl, st, pin, ok, bad, last: Date.now(), lvl, sk: 0, man: 0});
+              if(ist.ex.length<3) ist.ex.push(`${esc(la)} → ${esc(pl)}`);
+            }
+          });
+          
+          if(ist.errs > 15) ist.errLog.push(`…i ${ist.errs-15} kolejnych`);
+          ist.n = ist.toAdd.length;
+          ist.chkMsg = "ok";
+          ist.canImp = ist.toAdd.length > 0 || (ist.dupMode==='upd' && ist.dupUp > 0);
+          render();
+        } catch(err) {
+          state.importState.chkMsg = "Błąd: " + err.message;
+          render();
+        }
+        return;
       }
       if (p[1] === 'do') {
         state.undoWords = JSON.stringify(state.words); 
@@ -965,7 +1001,7 @@ document.body.addEventListener('click', e => {
         if(!state.importState) state.importState={};
         try {
           let b = new Blob(['\uFEFF'+t], {type: 'text/csv;charset=utf-8'});
-          let a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'lingua-latina-slowka.csv';
+          let a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'wordie-slowka.csv';
           a.click(); state.importState.expMsg='Uruchomiono pobieranie. Jeśli plik się nie pojawi, użyj kopiowania do schowka.';
         } catch(e) { state.importState.expMsg='Pobieranie nie jest tu dostępne. Użyj kopiowania do schowka.'; }
         render(); return;
@@ -1004,6 +1040,16 @@ document.body.addEventListener('change', e => {
   }
   if (p[0] === 'b' && p[1] === 'filt') {
     state.filter = el.value; render();
+  }
+  if (p[0] === 'ie') {
+      if(p[1]==='st' || p[1]==='dup') {
+          // kliknięcie przycisku 'sprawdź' pobierze te wartości, nie renderujemy teraz aby nie zgubić tekstu w textarea
+          return; 
+      }
+      if(p[1]==='file') {
+        let ev = new Event('click', { bubbles: true });
+        el.dispatchEvent(ev); 
+      }
   }
 });
 
