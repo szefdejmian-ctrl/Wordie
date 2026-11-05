@@ -101,9 +101,7 @@ input[type="text"], input[type="number"], select, textarea {
 }
 input::placeholder, textarea::placeholder { color: var(--placeholder); font-family: 'Nunito Sans', system-ui, sans-serif; font-size: 15px; font-weight: 400; }
 select {
-  background-image: url("data:image/svg+xml,%3Csvg fill='%23DADADD' viewBox='0 0 24 24' width='24' height='24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
+  background: var(--inner-bg) url("data:image/svg+xml,%3Csvg fill='%23DADADD' viewBox='0 0 24 24' width='24' height='24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E") no-repeat right 10px center !important;
   padding-right: 34px;
 }
 textarea { min-height: 120px; resize: vertical; font-family: monospace; font-size: 14px; }
@@ -220,17 +218,16 @@ input[type="range"]:active::-moz-range-thumb { transform: scale(1.2); }
 }
 @media (max-width: 300px) { body { overflow-x: auto; } }
 </style>
-<!-- Google Identity Services -->
-<script src="https://accounts.google.com/gsi/client" async defer></script>
-</head>
-<body>
+
+  <body>
 <div id="app"></div>
     
 <script>
+
 // JĘZYKI (Profile)
 const PROFILES = {
   'la': { id: 'la', name: 'Łacina', loc: 'łacinie', flag: '🏛️' },
-  'en': { id: 'en', name: 'Angielski', loc: 'angielsku', flag: '<span style="font-size:16px; font-weight:800;">EN</span>' }
+  'en': { id: 'en', name: 'Angielski', loc: 'angielsku', flag: '🇬🇧' }
 };
 
 // Utilities
@@ -1137,8 +1134,8 @@ function authGoogle(callback) {
   client.requestAccessToken();
 }
 
-async function getBackupFileId() {
-  const q = encodeURIComponent("name='wordie_backup.json' and trashed=false");
+async function getBackupFileId(fileName = 'wordie_backup_v3.json') {
+  const q = encodeURIComponent(`name='${fileName}' and trashed=false`);
   const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&spaces=drive`, {
     headers: { Authorization: `Bearer ${gToken}` }
   });
@@ -1150,9 +1147,17 @@ async function saveToCloud() {
   if(!gToken) { authGoogle(saveToCloud); return; }
   try {
     state.cloudMsg = "Wysyłanie do chmury..."; render();
-    let fileId = await getBackupFileId();
-    const content = JSON.stringify({words: state.words, sess: state.sess});
-    const metadata = { name: 'wordie_backup.json', mimeType: 'application/json' };
+    let fileName = 'wordie_backup_v3.json';
+    let fileId = await getBackupFileId(fileName);
+    
+    let allData = {};
+    try { allData.la = JSON.parse(localStorage.getItem('lat_v2_la')) || {words:[],sess:[]}; } catch(e){ allData.la = {words:[],sess:[]}; }
+    try { allData.en = JSON.parse(localStorage.getItem('lat_v2_en')) || {words:[],sess:[]}; } catch(e){ allData.en = {words:[],sess:[]}; }
+    
+    allData[state.lang] = { words: state.words, sess: state.sess };
+    
+    const content = JSON.stringify(allData);
+    const metadata = { name: fileName, mimeType: 'application/json' };
 
     const form = new FormData();
     form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
@@ -1165,12 +1170,8 @@ async function saveToCloud() {
       method = 'PATCH';
     }
 
-    const res = await fetch(url, {
-      method: method,
-      headers: { Authorization: `Bearer ${gToken}` },
-      body: form
-    });
-    if(res.ok) { state.cloudMsg = "Zapisano pomyślnie na Twoim Dysku Google!"; }
+    const res = await fetch(url, { method: method, headers: { Authorization: `Bearer ${gToken}` }, body: form });
+    if(res.ok) { state.cloudMsg = "Zapisano oba języki na Dysku Google!"; }
     else { state.cloudMsg = "Wystąpił błąd zapisu z powodu uprawnień."; }
   } catch(e) { state.cloudMsg = "Błąd sieci: " + e.message; }
   render();
@@ -1180,20 +1181,39 @@ async function loadFromCloud() {
   if(!gToken) { authGoogle(loadFromCloud); return; }
   try {
     state.cloudMsg = "Pobieranie z chmury..."; render();
-    let fileId = await getBackupFileId();
-    if(!fileId) { state.cloudMsg = "Nie znaleziono pliku wordie_backup.json na Dysku."; render(); return; }
+    
+    let fileId = await getBackupFileId('wordie_backup_v3.json');
+    let isV3 = true;
+    
+    if(!fileId) {
+        fileId = await getBackupFileId('wordie_backup.json');
+        isV3 = false;
+    }
+    
+    if(!fileId) { state.cloudMsg = "Nie znaleziono kopii zapasowej na Dysku."; render(); return; }
 
     const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
       headers: { Authorization: `Bearer ${gToken}` }
     });
     const data = await res.json();
-    if(data.words) {
-      state.words = data.words;
-      state.sess = data.sess || [];
-      saveData();
-      state.cloudMsg = "Dane pobrane i zaktualizowane!";
-      state.screenKey++; 
-    } else { state.cloudMsg = "Plik na dysku jest uszkodzony."; }
+    
+    if (isV3 && (data.la || data.en)) {
+        if (data.la) localStorage.setItem('lat_v2_la', JSON.stringify(data.la));
+        if (data.en) localStorage.setItem('lat_v2_en', JSON.stringify(data.en));
+        
+        let curData = data[state.lang] || {words: [], sess: []};
+        state.words = curData.words || [];
+        state.sess = curData.sess || [];
+        state.cloudMsg = "Pobrano wszystkie języki!";
+    } else if (data.words) {
+        state.words = data.words;
+        state.sess = data.sess || [];
+        saveData();
+        state.cloudMsg = "Pobrano starszą wersję zapisu!";
+    } else {
+        state.cloudMsg = "Plik na dysku jest uszkodzony.";
+    }
+    state.screenKey++; 
   } catch(e) { state.cloudMsg = "Błąd sieci: " + e.message; }
   render();
 }
