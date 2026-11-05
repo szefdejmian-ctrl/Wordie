@@ -248,6 +248,7 @@ let state = {
   filter: 'all', search: '', addSt: 'new',
   importPanel: '', importState: null, undoWords: null,
   pinHide: false,
+  cloudMsg: '',
   screenKey: 0 
 };
 
@@ -741,6 +742,19 @@ function renderBase() {
     </div>
   </div>`;
   
+  h += `<div class="glass card" style="margin-top:12px">
+    <div style="display:flex;align-items:center;gap:8px">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM19 18H6c-2.21 0-4-1.79-4-4 0-2.05 1.53-3.76 3.56-3.97l1.07-.11.5-.95C8.08 7.14 9.94 6 12 6c2.62 0 4.88 1.86 5.39 4.43l.3 1.5 1.53.11c1.56.1 2.78 1.41 2.78 2.96 0 1.65-1.35 3-3 3z"/></svg>
+      <h2 style="margin:0">Kopia w Chmurze (Dysk Google)</h2>
+    </div>
+    <p style="font-size:14px;color:var(--text-sub)">Zapisz swoje słówka na Dysku Google, aby mieć do nich dostęp z innych urządzeń. <br><b>Uwaga:</b> Aby funkcja działała, musisz dodać swój CLIENT_ID w kodzie!</p>
+    <div style="display:flex; gap:8px;">
+      <button class="btn-main glass-inner" data-a="cloud:save">Wyślij do chmury</button>
+      <button class="btn-main glass orange-glass" data-a="cloud:load">Pobierz z chmury</button>
+    </div>
+    ${state.cloudMsg ? `<div style="margin-top:8px; font-weight:600; color:var(--orange); text-align:center;">${state.cloudMsg}</div>` : ''}
+  </div>`;
+
   return h;
 }
 
@@ -795,6 +809,11 @@ document.body.addEventListener('click', e => {
   
   if (p[0] === 'tab') { state.prevTab = state.tab; state.tab = p[1]; state.screenKey++; state.game = null; gs = {}; render(); return; }
   
+  if (p[0] === 'cloud') {
+    if (p[1] === 'save') { saveToCloud(); return; }
+    if (p[1] === 'load') { loadFromCloud(); return; }
+  }
+
   if (state.tab === 'game') {
     if (p[0] === 'start') { startSession(p[1]); return; }
     if (p[0] === 'g' && p[1] === 'end') { state.game = null; gs = {}; render(); return; }
@@ -1093,6 +1112,89 @@ function parseCSV(text, sep) {
   }
   if(val || cur.length) { cur.push(val); rows.push(cur); }
   return rows.filter(r => r.some(x=>x.trim())); 
+}
+
+
+// --- GOOGLE DRIVE SYNC ---
+const G_CLIENT_ID = '883859821583-kle087gu5j1md8qcmpnng2tk1qh79qqt.apps.googleusercontent.com'; // <--- ZMIEŃ TO!
+let gToken = null;
+
+function authGoogle(callback) {
+  if (G_CLIENT_ID.includes('TUTAJ_WKLEJ')) {
+    state.cloudMsg = "Błąd: Znajdź w kodzie zmienną G_CLIENT_ID i wklej swój własny klucz!";
+    render();
+    return;
+  }
+  const client = google.accounts.oauth2.initTokenClient({
+    client_id: G_CLIENT_ID,
+    scope: 'https://www.googleapis.com/auth/drive.file',
+    callback: (tokenResponse) => {
+      gToken = tokenResponse.access_token;
+      if(callback) callback();
+    },
+  });
+  client.requestAccessToken();
+}
+
+async function getBackupFileId() {
+  const q = encodeURIComponent("name='wordie_backup.json' and trashed=false");
+  const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&spaces=drive`, {
+    headers: { Authorization: `Bearer ${gToken}` }
+  });
+  const data = await res.json();
+  return data.files && data.files.length > 0 ? data.files[0].id : null;
+}
+
+async function saveToCloud() {
+  if(!gToken) { authGoogle(saveToCloud); return; }
+  try {
+    state.cloudMsg = "Wysyłanie do chmury..."; render();
+    let fileId = await getBackupFileId();
+    const content = JSON.stringify({words: state.words, sess: state.sess});
+    const metadata = { name: 'wordie_backup.json', mimeType: 'application/json' };
+
+    const form = new FormData();
+    form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
+    form.append('file', new Blob([content], { type: 'application/json' }));
+
+    let url = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
+    let method = 'POST';
+    if (fileId) {
+      url = `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`;
+      method = 'PATCH';
+    }
+
+    const res = await fetch(url, {
+      method: method,
+      headers: { Authorization: `Bearer ${gToken}` },
+      body: form
+    });
+    if(res.ok) { state.cloudMsg = "Zapisano pomyślnie na Twoim Dysku Google!"; }
+    else { state.cloudMsg = "Wystąpił błąd zapisu z powodu uprawnień."; }
+  } catch(e) { state.cloudMsg = "Błąd sieci: " + e.message; }
+  render();
+}
+
+async function loadFromCloud() {
+  if(!gToken) { authGoogle(loadFromCloud); return; }
+  try {
+    state.cloudMsg = "Pobieranie z chmury..."; render();
+    let fileId = await getBackupFileId();
+    if(!fileId) { state.cloudMsg = "Nie znaleziono pliku wordie_backup.json na Dysku."; render(); return; }
+
+    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+      headers: { Authorization: `Bearer ${gToken}` }
+    });
+    const data = await res.json();
+    if(data.words) {
+      state.words = data.words;
+      state.sess = data.sess || [];
+      saveData();
+      state.cloudMsg = "Dane pobrane i zaktualizowane!";
+      state.screenKey++; 
+    } else { state.cloudMsg = "Plik na dysku jest uszkodzony."; }
+  } catch(e) { state.cloudMsg = "Błąd sieci: " + e.message; }
+  render();
 }
 
 // Init
