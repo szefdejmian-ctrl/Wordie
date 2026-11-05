@@ -220,12 +220,13 @@ input[type="range"]:active::-moz-range-thumb { transform: scale(1.2); }
 }
 @media (max-width: 300px) { body { overflow-x: auto; } }
 </style>
-
-  <body>
+<!-- Google Identity Services -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
 <div id="app"></div>
     
 <script>
-
 // JĘZYKI (Profile)
 const PROFILES = {
   'la': { id: 'la', name: 'Łacina', loc: 'łacinie', flag: '🏛️' },
