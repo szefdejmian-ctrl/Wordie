@@ -12,6 +12,7 @@
 <link rel="icon" type="image/png" href="logo.png">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Crafty+Girls&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 :root {
   --bg: #141416;
@@ -194,7 +195,7 @@ input[type="range"]:active::-moz-range-thumb { transform: scale(1.2); }
 .panel { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows 0.3s, opacity 0.3s; width: 100%; }
 .panel.open { grid-template-rows: 1fr; opacity: 1; margin-top: 12px; }
 .panel-inner { overflow: hidden; display: flex; flex-direction: column; gap: 12px; padding: 2px; }
-.file-lbl { display: inline-flex; align-items: center; justify-content: center; background: var(--inner-bg); border: 1px dashed rgba(255,255,255,0.3); border-radius: 14px; min-height: 44px; font-size: 15px; font-weight: 600; color: var(--text-main); cursor: pointer; padding: 0 16px; text-align: center; }
+.file-lbl { position: relative; display: inline-flex; align-items: center; justify-content: center; background: var(--inner-bg); border: 1px dashed rgba(255,255,255,0.3); border-radius: 14px; min-height: 44px; font-size: 15px; font-weight: 600; color: var(--text-main); cursor: pointer; padding: 0 16px; text-align: center; }
 
 /* Animations */
 @media (prefers-reduced-motion: no-preference) {
@@ -217,9 +218,10 @@ input[type="range"]:active::-moz-range-thumb { transform: scale(1.2); }
   #app { padding: 12px 8px; }
 }
 @media (max-width: 300px) { body { overflow-x: auto; } }
+.fade-out { pointer-events: none; }
 </style>
-
-  <body>
+</head>
+<body>
 <div id="app"></div>
     
 <script>
@@ -245,7 +247,7 @@ let state = {
   game: null, 
   filter: 'all', search: '', addSt: 'new',
   importPanel: '', importState: null, undoWords: null,
-  pinHide: false,
+  pinHide: false, pinShow: {}, addLa: '', addPl: '', lastMode: null,
   cloudMsg: '',
   screenKey: 0 
 };
@@ -256,12 +258,27 @@ if (!PROFILES[state.lang]) {
   localStorage.setItem('lat_lang', 'la');
 }
 
+function normWords(arr) {
+  if (!Array.isArray(arr)) return [];
+  return arr.filter(w => w && w.la && w.pl).map((w, i) => {
+    const st = ['new','review','mastered'].includes(w.st) ? w.st : 'new';
+    let lvl = Number(w.lvl); if (!isFinite(lvl)) lvl = getLvlBands(st).def;
+    let id = Number(w.id); if (!isFinite(id)) id = Date.now() + i;
+    return { id, la: String(w.la), pl: String(w.pl), st, pin: w.pin ? 1 : 0, ok: Number(w.ok)||0, bad: Number(w.bad)||0, last: Number(w.last)||0, lvl, sk: Number(w.sk)||0, man: Number(w.man)||0 };
+  });
+}
+
+function ensureImp() {
+  if (!state.importState) state.importState = {n:0, dup:0, dupUp:0, errs:0, sep:'', errLog:[], ex:[], canImp:false, txt:'', file:'', dupMode:'skip', defSt:'new', resMsg:'', chkMsg:'', expMsg:''};
+  return state.importState;
+}
+
 function loadData() {
   try {
     const v2 = localStorage.getItem('lat_v2_' + state.lang) || (state.lang === 'la' ? localStorage.getItem('lat_v2') : null);
     if (v2) {
       const d = JSON.parse(v2);
-      state.words = d.words || [];
+      state.words = normWords(d.words);
       state.sess = d.sess || [];
     } else {
       if (state.lang === 'la') {
@@ -328,7 +345,7 @@ function processAnswer(w, isOk, pts) {
 // Game State
 let gs = {};
 function startSession(mode) {
-  gs = { mode, q: [], curr: 0, res: [], anim: '', wrongShake: false, wp: '', wres: -1, chSel: -1, mPairs: [], mSel: -1 };
+  gs = { sid: Math.random(), mode, q: [], curr: 0, res: [], anim: '', wrongShake: false, wp: '', wres: -1, chSel: -1, mPairs: [], mSel: -1 };
   let poolWords = state.words.filter(w => {
     if(state.pool==='new') return w.st==='new';
     if(state.pool==='review') return w.st==='review';
@@ -344,12 +361,13 @@ function startSession(mode) {
     gs.totalRounds = amt;
     gs.q = [];
     for(let i=0; i<amt; i+=6) gs.q.push(shuf.slice(i, i+6));
+    if (gs.q.length > 1 && gs.q[gs.q.length-1].length < 3) { let last = gs.q.pop(); gs.q[gs.q.length-1].push(...last); }
     initMatchPhase();
   } else {
     let seq = [];
     let lastId = null;
     if (state.pool === 'intel') {
-      let pw = poolWords.map(w=>({...w, weight: w.st==='new'?5 : w.st==='review'?3 : 1}));
+      let pw = poolWords.map(w=>({ref: w, id: w.id, weight: w.st==='new'?5 : w.st==='review'?3 : 1}));
       let src = [...pw];
       for(let i=0; i<state.rounds; i++) {
         if(src.length===0) src = [...pw];
@@ -359,7 +377,7 @@ function startSession(mode) {
         let r = Math.random()*sum;
         let sel = avail[avail.length-1];
         for(let w of avail) { r -= w.weight; if(r<=0) { sel=w; break; } }
-        seq.push(sel);
+        seq.push(sel.ref);
         lastId = sel.id;
         src = src.filter(w => w.id !== sel.id);
       }
@@ -379,26 +397,32 @@ function startSession(mode) {
     });
     if (mode === 'choice') initChoiceQuestion();
   }
-  state.game = mode; state.screenKey++; render();
+  state.lastMode = mode; state.game = mode; state.screenKey++; render();
 }
 
 function initChoiceQuestion() {
   let cur = gs.q[gs.curr];
-  let normAns = norm(cur.dir==='pl2la' ? cur.w.la : cur.w.pl);
-  let cands = state.words.filter(w => norm(cur.dir==='pl2la'?w.la:w.pl) !== normAns);
-  cands = cands.sort(()=>Math.random()-0.5).slice(0, 3).map(w => cur.dir==='pl2la'?w.la:w.pl);
-  cands.push(cur.dir==='pl2la'?cur.w.la:cur.w.pl);
+  let key = w => cur.dir==='pl2la' ? w.la : w.pl;
+  let normAns = norm(key(cur.w));
+  let seen = new Set([normAns]);
+  let cands = [];
+  for (let w of [...state.words].sort(()=>Math.random()-0.5)) {
+    let n = norm(key(w));
+    if (seen.has(n)) continue;
+    seen.add(n); cands.push(key(w));
+    if (cands.length === 3) break;
+  }
+  cands.push(key(cur.w));
   gs.opts = cands.sort(()=>Math.random()-0.5);
 }
 
 function initMatchPhase() {
   if (gs.curr >= gs.q.length) { endSession(); return; }
   let phase = gs.q[gs.curr];
-  gs.mPairs = [];
-  let pls = phase.map(w=>w.pl).sort(()=>Math.random()-0.5);
-  let las = phase.map(w=>w.la).sort(()=>Math.random()-0.5);
-  for(let i=0; i<phase.length; i++) gs.mPairs.push({pl: pls[i], la: las[i], plV: true, laV: true, w: phase});
-  gs.mSel = -1; gs.mMatched = 0; gs.mShake = false;
+  let ls = [...phase].sort(()=>Math.random()-0.5);
+  let rs = [...phase].sort(()=>Math.random()-0.5);
+  gs.mPairs = ls.map((l, i) => ({ l, r: rs[i], plV: true, laV: true, lAnim: '', rAnim: '' }));
+  gs.mSel = -1; gs.mMatched = 0; gs.mCleaned = 0; gs.mShake = false;
 }
 
 function endSession() {
@@ -535,7 +559,7 @@ function renderActiveGame() {
   let m = state.game;
   let p = PROFILES[state.lang];
   if (m === 'match') {
-    let rN = gs.res.length; 
+    let rN = gs.res.filter(r=>r.ok).length; 
     let head = `<div style="display:flex;justify-content:space-between;align-items:center"><div class="sub">${rN} / ${gs.totalRounds}</div><button class="tab" style="padding:0;min-height:auto" ${_a('g:end')}>Zakończ</button></div>
     <div class="prog-wrap"><div class="prog-fill" style="width:${(rN/gs.totalRounds)*100}%"></div></div>`;
     
@@ -543,10 +567,9 @@ function renderActiveGame() {
     let lCol = '', rCol = '';
     gs.mPairs.forEach((pr, i) => {
       let actPl = gs.mSel === i ? 'glass orange-glass' : 'glass-inner';
-      let actLa = gs.mSel === i+100 ? 'glass orange-glass' : 'glass-inner'; 
-      if (pr.plV) lCol += `<button class="m-btn ${actPl} ${pr.mAnim||''}" ${_a('m:pl:'+i)} onanimationend="if(this.classList.contains('fade-out')) gs._cleanM(); this.classList.remove('fade-out')">${esc(pr.pl)}</button>`;
+      if (pr.plV) lCol += `<button class="m-btn ${actPl} ${pr.lAnim||''}" ${_a('m:pl:'+i)}>${esc(pr.l.pl)}</button>`;
       else lCol += `<div class="m-btn" style="opacity:0;pointer-events:none"></div>`;
-      if (pr.laV) rCol += `<button class="m-btn glass-inner ${pr.mAnim||''}" ${_a('m:la:'+i)} onanimationend="if(this.classList.contains('fade-out')) gs._cleanM(); this.classList.remove('fade-out')">${esc(pr.la)}</button>`;
+      if (pr.laV) rCol += `<button class="m-btn glass-inner ${pr.rAnim||''}" ${_a('m:la:'+i)}>${esc(pr.r.la)}</button>`;
       else rCol += `<div class="m-btn" style="opacity:0;pointer-events:none"></div>`;
     });
     grid += `<div class="m-col">${lCol}</div><div class="m-col">${rCol}</div></div>`;
@@ -620,29 +643,12 @@ function renderResults() {
   let h = `<div style="text-align:center"><div class="big-stat">${pct}%</div><div class="sub">Poprawnie: ${okN}, błędy: ${tot-okN}</div></div>`;
   if(up.length) h += `<div class="glass-inner" style="margin-top:16px"><div class="sub" style="color:var(--orange)">Zyskały na opanowaniu</div>${up.map(x=>`<div style="font-size:14px;color:var(--text-main)">${x}</div>`).join('')}</div>`;
   if(down.length) h += `<div class="glass-inner" style="margin-top:12px"><div class="sub" style="color:var(--err-text)">Straciły na opanowaniu</div>${down.map(x=>`<div style="font-size:14px;color:var(--text-main)">${x}</div>`).join('')}</div>`;
-  h += `<div style="display:flex;gap:8px;margin-top:16px"><button class="btn-main glass-inner" ${_a('set:home')}>Zmień tryb</button><button class="btn-main glass orange-glass" ${_a('start:'+state.game)}>Jeszcze raz</button></div>`;
+  h += `<div style="display:flex;gap:8px;margin-top:16px"><button class="btn-main glass-inner" ${_a('set:home')}>Zmień tryb</button><button class="btn-main glass orange-glass" ${_a('start:'+state.lastMode)}>Jeszcze raz</button></div>`;
   return h;
 }
 
-function renderBase() {
-  let p = PROFILES[state.lang];
-  let nT = state.words.length, nN = state.words.filter(w=>w.st==='new').length, nR = state.words.filter(w=>w.st==='review').length, nM = state.words.filter(w=>w.st==='mastered').length, nP = state.words.filter(w=>w.pin===1).length;
-  
-  let h = `<div class="glass card">
-    <h2>Dodaj słowo</h2>
-    <input type="text" id="add_la" placeholder="Po ${p.loc}" autocomplete="off" onkeydown="if(event.key==='Enter') document.getElementById('add_pl').focus()">
-    <input type="text" id="add_pl" placeholder="Po polsku (kilka znaczeń po przecinku)" autocomplete="off" style="margin-top:8px" onkeydown="if(event.key==='Enter') document.querySelector('[data-a=\\'b:add\\']').click()">
-    <select id="add_st" style="margin-top:8px" onchange="state.addSt=this.value">
-      <option value="new" ${state.addSt==='new'?'selected':''}>Do nauki</option><option value="review" ${state.addSt==='review'?'selected':''}>Do utrwalenia</option><option value="mastered" ${state.addSt==='mastered'?'selected':''}>Opanowane</option>
-    </select>
-    ${state.addErr ? `<div class="err-msg">${state.addErr}</div>` : ''}
-    <button class="btn-main glass orange-glass" style="margin-top:8px" ${_a('b:add')}>Dodaj słowo</button>
-  </div>`;
-  
+function renderWordList() {
   let f = state.filter;
-  let filt = `<select ${_a('b:filt')} style="margin-bottom:8px"><option value="all" ${f==='all'?'selected':''}>Wszystkie (${nT})</option><option value="new" ${f==='new'?'selected':''}>Do nauki (${nN})</option><option value="review" ${f==='review'?'selected':''}>Do utrwalenia (${nR})</option><option value="mastered" ${f==='mastered'?'selected':''}>Opanowane (${nM})</option><option value="pin" ${f==='pin'?'selected':''}>Przypięte (${nP})</option></select>`;
-  let srch = `<input type="text" placeholder="Szukaj w bazie" value="${esc(state.search)}" oninput="state.search=this.value; document.querySelector('[data-a=\\'b:srch\\']').click()" style="margin-bottom:12px"> <button style="display:none" ${_a('b:srch')}></button>`;
-  
   let list = [...state.words].reverse();
   if (f !== 'all') list = list.filter(w => f==='pin' ? w.pin===1 : w.st===f);
   if (state.search) {
@@ -678,14 +684,43 @@ function renderBase() {
       </div>`;
     }).join('');
   }
+  return wl;
+}
+
+function refreshWordList() {
+  let el = document.getElementById('word-list');
+  if (el) el.innerHTML = renderWordList();
+}
+
+function renderBase() {
+  let p = PROFILES[state.lang];
+  let nT = state.words.length, nN = state.words.filter(w=>w.st==='new').length, nR = state.words.filter(w=>w.st==='review').length, nM = state.words.filter(w=>w.st==='mastered').length, nP = state.words.filter(w=>w.pin===1).length;
   
-  h += `<div class="glass card"><h2>Twoje słowa</h2>${filt}${srch}${wl}</div>`;
+  let h = `<div class="glass card">
+    <h2>Dodaj słowo</h2>
+    <input type="text" id="add_la" placeholder="Po ${p.loc}" autocomplete="off" value="${esc(state.addLa)}" oninput="state.addLa=this.value" onkeydown="if(event.key==='Enter') document.getElementById('add_pl').focus()">
+    <input type="text" id="add_pl" placeholder="Po polsku (kilka znaczeń po przecinku)" autocomplete="off" value="${esc(state.addPl)}" oninput="state.addPl=this.value" style="margin-top:8px" onkeydown="if(event.key==='Enter') document.querySelector('[data-a=\\'b:add\\']').click()">
+    <select id="add_st" style="margin-top:8px" onchange="state.addSt=this.value">
+      <option value="new" ${state.addSt==='new'?'selected':''}>Do nauki</option><option value="review" ${state.addSt==='review'?'selected':''}>Do utrwalenia</option><option value="mastered" ${state.addSt==='mastered'?'selected':''}>Opanowane</option>
+    </select>
+    ${state.addErr ? `<div class="err-msg">${state.addErr}</div>` : ''}
+    <button class="btn-main glass orange-glass" style="margin-top:8px" ${_a('b:add')}>Dodaj słowo</button>
+  </div>`;
+  
+  let f = state.filter;
+  let filt = `<select ${_a('b:filt')} style="margin-bottom:8px"><option value="all" ${f==='all'?'selected':''}>Wszystkie (${nT})</option><option value="new" ${f==='new'?'selected':''}>Do nauki (${nN})</option><option value="review" ${f==='review'?'selected':''}>Do utrwalenia (${nR})</option><option value="mastered" ${f==='mastered'?'selected':''}>Opanowane (${nM})</option><option value="pin" ${f==='pin'?'selected':''}>Przypięte (${nP})</option></select>`;
+  let srch = `<input type="text" placeholder="Szukaj w bazie" value="${esc(state.search)}" oninput="state.search=this.value; refreshWordList()" style="margin-bottom:12px">`;
+  
+  let wl = renderWordList();
+  
+  h += `<div class="glass card"><h2>Twoje słowa</h2>${filt}${srch}<div id="word-list">${wl}</div></div>`;
   
   let ip = state.importPanel;
   let csvText = '';
   if (ip === 'exp') {
     let eList = state.filter === 'pin' ? state.words.filter(w=>w.pin) : state.words;
-    csvText = eList.map(w => `${w.la};${w.pl};${stLabels[w.st]};${w.pin?'tak':'nie'};${Math.round(w.lvl)};${w.ok};${w.bad}`).join('\r\n');
+    const q = s => /[;"\r\n\t]/.test(String(s)) ? '"' + String(s).replace(/"/g, '""') + '"' : String(s);
+    csvText = eList.map(w => [q(w.la), q(w.pl), stLabels[w.st], w.pin?'tak':'nie', Math.round(w.lvl), w.ok, w.bad].join(';')).join('\r\n');
   }
   
   h += `<div class="ie-grid">
@@ -702,8 +737,8 @@ function renderBase() {
   <div id="imp-panel" class="panel glass card ${ip==='imp'?'open':''}" style="margin-top:0">
     <div class="panel-inner">
       <p style="font-size:14px;color:var(--text-sub)">Wklej listę z Excela, Arkuszy Google lub innego źródła: jedno słowo w wierszu, wyraz docelowy i polski rozdzielone tabulatorem, średnikiem lub przecinkiem. Opcjonalnie kolejne kolumny: status i przypięcie (tak/nie).</p>
-      <textarea id="imp_txt" placeholder="słowo;tłumaczenie">${esc(iState.txt)}</textarea>
-      <label class="file-lbl"><input type="file" id="imp_file" accept=".csv,.txt" style="display:none" ${_a('ie:file')}>${esc(iState.file || 'Wybierz plik')}</label>
+      <textarea id="imp_txt" placeholder="słowo;tłumaczenie" oninput="ensureImp().txt=this.value">${esc(iState.txt)}</textarea>
+      <label class="file-lbl"><input type="file" id="imp_file" accept=".csv,.txt,text/csv,text/plain" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none" ${_a('ie:file')}>${esc(iState.file || 'Wybierz plik')}</label>
       <div class="sub" style="margin-top:4px">Status importowanych słów</div>
       <select ${_a('ie:st')}>
         <option value="new" ${iState.defSt==='new'?'selected':''}>Do nauki</option><option value="review" ${iState.defSt==='review'?'selected':''}>Do utrwalenia</option><option value="mastered" ${iState.defSt==='mastered'?'selected':''}>Opanowane</option>
@@ -745,7 +780,7 @@ function renderBase() {
       <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM19 18H6c-2.21 0-4-1.79-4-4 0-2.05 1.53-3.76 3.56-3.97l1.07-.11.5-.95C8.08 7.14 9.94 6 12 6c2.62 0 4.88 1.86 5.39 4.43l.3 1.5 1.53.11c1.56.1 2.78 1.41 2.78 2.96 0 1.65-1.35 3-3 3z"/></svg>
       <h2 style="margin:0">Kopia w Chmurze (Dysk Google)</h2>
     </div>
-    <p style="font-size:14px;color:var(--text-sub)">Zapisz swoje słówka na Dysku Google, aby mieć do nich dostęp z innych urządzeń. <br><b>Uwaga:</b> Aby funkcja działała, musisz dodać swój CLIENT_ID w kodzie!</p>
+    <p style="font-size:14px;color:var(--text-sub)">Zapisz swoje słówka na Dysku Google, aby mieć do nich dostęp z innych urządzeń. </p>
     <div style="display:flex; gap:8px;">
       <button class="btn-main glass-inner" data-a="cloud:save">Wyślij do chmury</button>
       <button class="btn-main glass orange-glass" data-a="cloud:load">Pobierz z chmury</button>
@@ -772,7 +807,7 @@ function renderPinned() {
     <div class="pin-row" ${ph?_a('p:tog:'+w.id):''}>
       <div class="pin-content">
         <div class="pin-inline pin-la">${esc(w.la)}</div>
-        <div class="pin-inline pin-pl ${ph && !w._showPl ? 'hidden-pl' : ''}">${ph && !w._showPl ? 'dotknij' : esc(w.pl)}</div>
+        <div class="pin-inline pin-pl ${ph && !state.pinShow[w.id] ? 'hidden-pl' : ''}">${ph && !state.pinShow[w.id] ? 'dotknij' : esc(w.pl)}</div>
       </div>
       <button class="pin-btn pinned" ${_a('b:pin:'+w.id)}><svg class="pin-icon" viewBox="0 0 24 24"><path d="M9 3h6l-1 6 3 3v2h-4.5v6l-.5 1-.5-1v-6H7v-2l3-3z"/></svg></button>
     </div>
@@ -805,7 +840,7 @@ document.body.addEventListener('click', e => {
     }
   }
   
-  if (p[0] === 'tab') { state.prevTab = state.tab; state.tab = p[1]; state.screenKey++; state.game = null; gs = {}; render(); return; }
+  if (p[0] === 'tab') { state.addErr = ''; state.prevTab = state.tab; state.tab = p[1]; state.screenKey++; state.game = null; gs = {}; render(); return; }
   
   if (p[0] === 'cloud') {
     if (p[1] === 'save') { saveToCloud(); return; }
@@ -814,12 +849,12 @@ document.body.addEventListener('click', e => {
 
   if (state.tab === 'game') {
     if (p[0] === 'start') { startSession(p[1]); return; }
-    if (p[0] === 'g' && p[1] === 'end') { state.game = null; gs = {}; render(); return; }
+    if (p[0] === 'g' && p[1] === 'end') { saveData(); state.game = null; gs = {}; render(); return; }
     if (p[0] === 'g' && p[1] === 'next') {
       if(gs.wres === 1) gs.res.push(processAnswer(gs.q[gs.curr].w, true, state.game==='type'?18:10));
       else gs.res.push(processAnswer(gs.q[gs.curr].w, false, 0));
       gs.curr++; gs.wres = -1; gs.chSel = -1; gs.wrt = ''; gs.wp = '';
-      if(gs.curr >= state.rounds) endSession(); else { state.screenKey++; render(); }
+      if(gs.curr >= state.rounds) endSession(); else { if (state.game==='choice') initChoiceQuestion(); state.screenKey++; render(); }
       return;
     }
     if (p[0] === 'f') {
@@ -850,25 +885,28 @@ document.body.addEventListener('click', e => {
     }
     if (p[0] === 'm') {
       let col = p[1], idx = parseInt(p[2]);
-      if(col==='pl') gs.mSel = gs.mSel===idx ? -1 : idx;
-      else if(gs.mSel !== -1) {
-        let lIdx = gs.mSel;
-        if(gs.mPairs[lIdx].w.id === gs.mPairs[idx].w.id) {
-          gs.mPairs[lIdx].mAnim = 'fade-out'; gs.mPairs[idx].mAnim = 'fade-out';
-          gs.mSel = -1; gs.mMatched++;
-          gs._cleanM = () => {
-             gs.mPairs[lIdx].plV = false; gs.mPairs[idx].laV = false;
-             gs.mPairs[lIdx].mAnim = ''; gs.mPairs[idx].mAnim = '';
-             gs.res.push(processAnswer(gs.mPairs[lIdx].w, true, 8));
-             if (gs.mMatched >= gs.mPairs.length) { gs.curr++; initMatchPhase(); state.screenKey++; render(); }
-             else render();
-          };
+      if (!gs.mPairs) return;
+      if (col === 'pl') { gs.mSel = gs.mSel === idx ? -1 : idx; render(); return; }
+      if (gs.mSel === -1) return;
+      let L = gs.mPairs[gs.mSel], R = gs.mPairs[idx];
+      if (!L || !R || !L.plV || !R.laV || L.lAnim || R.rAnim) return;
+      if (L.l.id === R.r.id) {
+        L.lAnim = 'fade-out'; R.rAnim = 'fade-out';
+        gs.mSel = -1; gs.mMatched++;
+        const sid = gs.sid, phaseNo = gs.curr;
+        render();
+        setTimeout(() => {
+          if (gs.sid !== sid || gs.curr !== phaseNo || state.game !== 'match') return;
+          L.plV = false; R.laV = false; L.lAnim = ''; R.rAnim = '';
+          gs.res.push(processAnswer(L.l, true, 8));
+          gs.mCleaned++;
+          if (gs.mCleaned >= gs.mPairs.length) { gs.curr++; initMatchPhase(); state.screenKey++; }
           render();
-        } else {
-          gs.wrongShake = true; gs.mShake = true; gs.mSel = -1;
-          gs.res.push(processAnswer(gs.mPairs[lIdx].w, false, 0));
-          render();
-        }
+        }, 350);
+      } else {
+        gs.mShake = true; gs.mSel = -1;
+        gs.res.push(processAnswer(L.l, false, 0));
+        render();
       }
       return;
     }
@@ -886,7 +924,7 @@ document.body.addEventListener('click', e => {
         if(state.words.some(w => norm(w.la) === norm(la))) { state.addErr = 'To słowo jest już w bazie.'; render(); return; }
         let lb = getLvlBands(state.addSt);
         state.words.push({id: getNewId(), la, pl, st: state.addSt, pin: 0, ok: 0, bad: 0, last: Date.now(), lvl: lb.def, sk: 0, man: 0});
-        state.addErr = ''; document.getElementById('add_la').value = ''; document.getElementById('add_pl').value = '';
+        state.addErr = ''; state.addLa = ''; state.addPl = ''; document.getElementById('add_la').value = ''; document.getElementById('add_pl').value = '';
         state.undoWords = null; saveData(); render();
         setTimeout(()=>{let l=document.getElementById('add_la'); if(l) l.focus();}, 10);
         return;
@@ -896,7 +934,16 @@ document.body.addEventListener('click', e => {
       }
       if (p[1] === 'pin') {
         let id = parseInt(p[2]), w = state.words.find(x=>x.id===id);
-        if(w) { w.pin = w.pin ? 0 : 1; let btn = btn.closest('.pin-btn'); if(w.pin && btn) { btn.classList.add('pop'); setTimeout(()=>btn.classList.remove('pop'),400);} state.undoWords = null; saveData(); if(!btn) render(); else { setTimeout(render, 400); } } return;
+        if (w) {
+          w.pin = w.pin ? 0 : 1;
+          state.undoWords = null; saveData();
+          if (w.pin) {
+            btn.classList.add('pinned', 'pop');
+            btn.setAttribute('aria-pressed', 'true');
+            setTimeout(() => { if (state.tab === 'base') render(); }, 380);
+          } else { render(); }
+        }
+        return;
       }
       if (p[1] === 'st') {
         let id = parseInt(p[2]), w = state.words.find(x=>x.id===id);
@@ -906,40 +953,18 @@ document.body.addEventListener('click', e => {
     if (p[0] === 'ie') {
       if (p[1] === 'imp') { state.importPanel = state.importPanel==='imp'?'':'imp'; if(state.importPanel) setTimeout(()=>window.scrollTo({top:document.body.scrollHeight, behavior:'smooth'}), 100); render(); return; }
       if (p[1] === 'exp') { state.importPanel = state.importPanel==='exp'?'':'exp'; if(state.importPanel) setTimeout(()=>window.scrollTo({top:document.body.scrollHeight, behavior:'smooth'}), 100); render(); return; }
-      if (p[1] === 'txt' || p[1] === 'st' || p[1] === 'dup') {
-        if(!state.importState) state.importState = {txt:'', dupMode:'skip', defSt:'new'};
-        if(p[1]==='st') state.importState.defSt = document.querySelector('select[data-a="ie:st"]').value;
-        if(p[1]==='dup') state.importState.dupMode = document.querySelector('select[data-a="ie:dup"]').value;
-        state.importState.chkMsg = ''; 
-        render(); 
-        return;
-      }
-      
-      if (p[1] === 'file') {
-        if(!state.importState) state.importState = {txt:'', dupMode:'skip', defSt:'new'};
-        let fileInput = document.getElementById('imp_file');
-        if (fileInput && fileInput.files.length > 0) {
-          let file = fileInput.files[0];
-          let r = new FileReader();
-          r.onload = e => {
-            state.importState.txt = e.target.result;
-            state.importState.file = file.name;
-            state.importState.chkMsg = '';
-            render();
-          };
-          r.readAsText(file);
-        }
-        return;
-      }
+      if (p[1] === 'txt' || p[1] === 'st' || p[1] === 'dup' || p[1] === 'file') return;
 
       if (p[1] === 'chk') {
         try {
           // Pobranie na żywo wartości z pola textarea (pomija oninput)
+          let ist = ensureImp();
           let txtArea = document.getElementById('imp_txt');
-          if (txtArea) state.importState.txt = txtArea.value;
-          
-          let ist = state.importState;
-          if (!ist.txt || !ist.txt.trim()) { ist.chkMsg = "Pole jest puste. Wklej listę słów albo wybierz plik."; ist.canImp = false; render(); return; }
+          if (txtArea) ist.txt = txtArea.value;
+          let selSt = document.querySelector('select[data-a="ie:st"]'); if (selSt) ist.defSt = selSt.value;
+          let selDup = document.querySelector('select[data-a="ie:dup"]'); if (selDup) ist.dupMode = selDup.value;
+          ist.resMsg = '';
+          if (!ist.txt || !ist.txt.trim()) { ist.chkMsg = "Pole jest puste. Wklej listę słów albo wybierz plik."; ist.n = undefined; ist.canImp = false; render(); return; }
           
           let lines = ist.txt.split(/\r?\n/).filter(x=>x.trim()).slice(0,8);
           let sT = lines.filter(x=>x.includes('\t')).length;
@@ -996,12 +1021,13 @@ document.body.addEventListener('click', e => {
           ist.canImp = ist.toAdd.length > 0 || (ist.dupMode==='upd' && ist.dupUp > 0);
           render();
         } catch(err) {
-          state.importState.chkMsg = "Błąd: " + err.message;
+          let ist2 = ensureImp(); ist2.chkMsg = "Błąd: " + err.message; ist2.n = undefined; ist2.canImp = false;
           render();
         }
         return;
       }
       if (p[1] === 'do') {
+        if (!state.importState || !state.importState.canImp) return;
         state.undoWords = JSON.stringify(state.words); 
         let ist = state.importState;
         if(ist.toUpd.length > 0) {
@@ -1026,23 +1052,30 @@ document.body.addEventListener('click', e => {
         return;
       }
       if (p[1] === 'cp') {
-        let t = document.getElementById('exp_txt').value;
-        if(!state.importState) state.importState={};
-        navigator.clipboard.writeText(t).then(()=>{ state.importState.expMsg='Skopiowano do schowka.'; render(); })
-        .catch(()=>{
-           let ta = document.getElementById('exp_txt'); ta.select(); document.execCommand('copy');
-           state.importState.expMsg='Nie udało się skopiować automatycznie. Zaznacz tekst w polu i skopiuj go ręcznie.'; render();
-        });
+        let ta = document.getElementById('exp_txt'); let t = ta ? ta.value : '';
+        let ist = ensureImp();
+        const fallback = () => {
+          let ok = false;
+          try { ta.focus(); ta.select(); ta.setSelectionRange(0, t.length); ok = document.execCommand('copy'); } catch(e) {}
+          ist.expMsg = ok ? 'Skopiowano do schowka.' : 'Nie udało się skopiować automatycznie. Zaznacz tekst w polu i skopiuj go ręcznie.';
+          render();
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(t).then(()=>{ ist.expMsg = 'Skopiowano do schowka.'; render(); }).catch(fallback);
+        } else fallback();
         return;
       }
       if (p[1] === 'dl') {
-        let t = document.getElementById('exp_txt').value;
-        if(!state.importState) state.importState={};
+        let ta = document.getElementById('exp_txt'); let t = ta ? ta.value : '';
+        let ist = ensureImp();
         try {
-          let b = new Blob(['\uFEFF'+t], {type: 'text/csv;charset=utf-8'});
-          let a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'wordie-slowka.csv';
-          a.click(); state.importState.expMsg='Uruchomiono pobieranie. Jeśli plik się nie pojawi, użyj kopiowania do schowka.';
-        } catch(e) { state.importState.expMsg='Pobieranie nie jest tu dostępne. Użyj kopiowania do schowka.'; }
+          let b = new Blob(['\uFEFF' + t], {type: 'text/csv;charset=utf-8'});
+          let url = URL.createObjectURL(b);
+          let a = document.createElement('a'); a.href = url; a.download = 'wordie-slowka.csv'; a.style.display = 'none';
+          document.body.appendChild(a); a.click();
+          setTimeout(() => { if (a.parentNode) a.parentNode.removeChild(a); URL.revokeObjectURL(url); }, 1500);
+          ist.expMsg = 'Uruchomiono pobieranie. Jeśli plik się nie pojawi, użyj kopiowania do schowka.';
+        } catch(e) { ist.expMsg = 'Pobieranie nie jest tu dostępne. Użyj kopiowania do schowka.'; }
         render(); return;
       }
     }
@@ -1053,10 +1086,10 @@ document.body.addEventListener('click', e => {
       let id = parseInt(p[2]), w = state.words.find(x=>x.id===id);
       if(w) { w.pin = 0; saveData(); render(); } return;
     }
-    if (p[0] === 'p' && p[1] === 'hide') { state.pinHide = !state.pinHide; render(); return; }
+    if (p[0] === 'p' && p[1] === 'hide') { state.pinHide = !state.pinHide; state.pinShow = {}; render(); return; }
     if (p[0] === 'p' && p[1] === 'tog') {
       let id = parseInt(p[2]), w = state.words.find(x=>x.id===id);
-      if(w) { w._showPl = !w._showPl; render(); } return;
+      if(w) { state.pinShow[id] = !state.pinShow[id]; render(); } return;
     }
   }
 });
@@ -1081,14 +1114,25 @@ document.body.addEventListener('change', e => {
     state.filter = el.value; render();
   }
   if (p[0] === 'ie') {
-      if(p[1]==='st' || p[1]==='dup') {
-          // kliknięcie przycisku 'sprawdź' pobierze te wartości, nie renderujemy teraz aby nie zgubić tekstu w textarea
-          return; 
-      }
-      if(p[1]==='file') {
-        let ev = new Event('click', { bubbles: true });
-        el.dispatchEvent(ev); 
-      }
+    let ist = ensureImp();
+    let ta = document.getElementById('imp_txt'); if (ta) ist.txt = ta.value;
+    if (p[1] === 'st') { ist.defSt = el.value; ist.chkMsg = ''; ist.canImp = false; render(); return; }
+    if (p[1] === 'dup') { ist.dupMode = el.value; ist.chkMsg = ''; ist.canImp = false; render(); return; }
+    if (p[1] === 'file') {
+      let f = el.files && el.files[0];
+      if (!f) return;
+      let r = new FileReader();
+      r.onload = ev => {
+        let buf = ev.target.result, text;
+        try { text = new TextDecoder('utf-8', {fatal: true}).decode(buf); }
+        catch(e) { try { text = new TextDecoder('windows-1250').decode(buf); } catch(e2) { text = new TextDecoder('utf-8').decode(buf); } }
+        ist.txt = text.replace(/^\uFEFF/, ''); ist.file = f.name; ist.chkMsg = ''; ist.canImp = false;
+        render();
+      };
+      r.onerror = () => { ist.chkMsg = 'Nie udało się odczytać pliku.'; ist.n = undefined; ist.canImp = false; render(); };
+      r.readAsArrayBuffer(f);
+      el.value = '';
+    }
   }
 });
 
@@ -1114,108 +1158,127 @@ function parseCSV(text, sep) {
 
 
 // --- GOOGLE DRIVE SYNC ---
-const G_CLIENT_ID = '883859821583-kle087gu5j1md8qcmpnng2tk1qh79qqt.apps.googleusercontent.com'; // <--- ZMIEŃ TO!
-let gToken = null;
+const G_CLIENT_ID = '883859821583-kle087gu5j1md8qcmpnng2tk1qh79qqt.apps.googleusercontent.com';
+const G_FILE = 'wordie_backup_v3.json';
+const G_FILE_OLD = 'wordie_backup.json';
+let gToken = null, gTokenExp = 0, gClient = null, gPending = null, gBusy = false;
 
-function authGoogle(callback) {
-  if (G_CLIENT_ID.includes('TUTAJ_WKLEJ')) {
-    state.cloudMsg = "Błąd: Znajdź w kodzie zmienną G_CLIENT_ID i wklej swój własny klucz!";
-    render();
-    return;
-  }
-  const client = google.accounts.oauth2.initTokenClient({
+function setCloudMsg(t) { state.cloudMsg = t; if (state.tab === 'base') render(); }
+function gisReady() { return !!(window.google && google.accounts && google.accounts.oauth2); }
+
+function getGClient() {
+  if (gClient) return gClient;
+  gClient = google.accounts.oauth2.initTokenClient({
     client_id: G_CLIENT_ID,
     scope: 'https://www.googleapis.com/auth/drive.file',
-    callback: (tokenResponse) => {
-      gToken = tokenResponse.access_token;
-      if(callback) callback();
+    callback: (resp) => {
+      const cb = gPending; gPending = null;
+      if (!resp || resp.error || !resp.access_token) {
+        setCloudMsg('Logowanie do Google nie powiodło się' + (resp && resp.error ? ' (' + resp.error + ')' : '') + '.');
+        return;
+      }
+      gToken = resp.access_token;
+      gTokenExp = Date.now() + (Number(resp.expires_in) || 3600) * 1000 - 60000;
+      if (cb) cb();
     },
+    error_callback: (err) => {
+      gPending = null;
+      const t = err && err.type;
+      setCloudMsg(t === 'popup_failed_to_open' ? 'Przeglądarka zablokowała okno logowania Google. Zezwól tej stronie na wyskakujące okna i spróbuj ponownie.'
+        : t === 'popup_closed' ? 'Okno logowania zostało zamknięte.'
+        : 'Błąd logowania Google' + (t ? ' (' + t + ')' : '') + '.');
+    }
   });
-  client.requestAccessToken();
+  return gClient;
 }
 
-async function getBackupFileId(fileName = 'wordie_backup_v3.json') {
+// Musi być wywołane bezpośrednio z kliknięcia: Safari blokuje okno logowania poza gestem użytkownika.
+function withToken(action) {
+  if (gBusy) return;
+  if (gToken && Date.now() < gTokenExp) { action(); return; }
+  if (!gisReady()) { setCloudMsg('Biblioteka logowania Google nie załadowała się. Sprawdź połączenie, wyłącz blokery reklam i odśwież stronę.'); return; }
+  gPending = action;
+  try { getGClient().requestAccessToken(); }
+  catch(e) { gPending = null; setCloudMsg('Nie udało się otworzyć logowania Google: ' + e.message); }
+}
+
+async function driveFetch(url, opts = {}) {
+  const res = await fetch(url, { ...opts, headers: { ...(opts.headers || {}), Authorization: 'Bearer ' + gToken } });
+  if (res.status === 401) { gToken = null; gTokenExp = 0; const e = new Error('Sesja Google wygasła. Kliknij przycisk jeszcze raz.'); throw e; }
+  return res;
+}
+
+async function getBackupFileId(fileName) {
   const q = encodeURIComponent(`name='${fileName}' and trashed=false`);
-  const res = await fetch(`https://www.googleapis.com/drive/v3/files?q=${q}&spaces=drive`, {
-    headers: { Authorization: `Bearer ${gToken}` }
-  });
+  const res = await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&spaces=drive&orderBy=modifiedTime%20desc&fields=files(id,modifiedTime)&pageSize=10`);
+  if (!res.ok) throw new Error('Dysk Google zwrócił błąd ' + res.status);
   const data = await res.json();
   return data.files && data.files.length > 0 ? data.files[0].id : null;
 }
 
-async function saveToCloud() {
-  if(!gToken) { authGoogle(saveToCloud); return; }
-  try {
-    state.cloudMsg = "Wysyłanie do chmury..."; render();
-    let fileName = 'wordie_backup_v3.json';
-    let fileId = await getBackupFileId(fileName);
-    
-    let allData = {};
-    try { allData.la = JSON.parse(localStorage.getItem('lat_v2_la')) || {words:[],sess:[]}; } catch(e){ allData.la = {words:[],sess:[]}; }
-    try { allData.en = JSON.parse(localStorage.getItem('lat_v2_en')) || {words:[],sess:[]}; } catch(e){ allData.en = {words:[],sess:[]}; }
-    
-    allData[state.lang] = { words: state.words, sess: state.sess };
-    
-    const content = JSON.stringify(allData);
-    const metadata = { name: fileName, mimeType: 'application/json' };
+function saveToCloud() { withToken(doSaveToCloud); }
+function loadFromCloud() { withToken(doLoadFromCloud); }
 
+async function doSaveToCloud() {
+  gBusy = true;
+  try {
+    setCloudMsg("Wysyłanie do chmury...");
+    saveData();
+    let fileId = await getBackupFileId(G_FILE);
+
+    let allData = {};
+    for (const l of Object.keys(PROFILES)) {
+      try { allData[l] = JSON.parse(localStorage.getItem('lat_v2_' + l)) || {words:[], sess:[]}; } catch(e) { allData[l] = {words:[], sess:[]}; }
+    }
+    allData[state.lang] = { words: state.words, sess: state.sess };
+
+    const metadata = { name: G_FILE, mimeType: 'application/json' };
     const form = new FormData();
     form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
-    form.append('file', new Blob([content], { type: 'application/json' }));
+    form.append('file', new Blob([JSON.stringify(allData)], { type: 'application/json' }));
 
     let url = 'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
     let method = 'POST';
-    if (fileId) {
-      url = `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`;
-      method = 'PATCH';
-    }
+    if (fileId) { url = `https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=multipart`; method = 'PATCH'; }
 
-    const res = await fetch(url, { method: method, headers: { Authorization: `Bearer ${gToken}` }, body: form });
-    if(res.ok) { state.cloudMsg = "Zapisano oba języki na Dysku Google!"; }
-    else { state.cloudMsg = "Wystąpił błąd zapisu z powodu uprawnień."; }
-  } catch(e) { state.cloudMsg = "Błąd sieci: " + e.message; }
-  render();
+    const res = await driveFetch(url, { method, body: form });
+    gBusy = false;
+    setCloudMsg(res.ok ? "Zapisano oba języki na Dysku Google!" : "Błąd zapisu na Dysku Google (kod " + res.status + ").");
+  } catch(e) { gBusy = false; setCloudMsg("Błąd: " + e.message); }
 }
 
-async function loadFromCloud() {
-  if(!gToken) { authGoogle(loadFromCloud); return; }
+async function doLoadFromCloud() {
+  gBusy = true;
   try {
-    state.cloudMsg = "Pobieranie z chmury..."; render();
-    
-    let fileId = await getBackupFileId('wordie_backup_v3.json');
+    setCloudMsg("Pobieranie z chmury...");
+    let fileId = await getBackupFileId(G_FILE);
     let isV3 = true;
-    
-    if(!fileId) {
-        fileId = await getBackupFileId('wordie_backup.json');
-        isV3 = false;
-    }
-    
-    if(!fileId) { state.cloudMsg = "Nie znaleziono kopii zapasowej na Dysku."; render(); return; }
+    if (!fileId) { fileId = await getBackupFileId(G_FILE_OLD); isV3 = false; }
+    if (!fileId) { gBusy = false; setCloudMsg("Nie znaleziono kopii zapasowej na Dysku."); return; }
 
-    const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
-      headers: { Authorization: `Bearer ${gToken}` }
-    });
+    const res = await driveFetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`);
+    if (!res.ok) throw new Error('Dysk Google zwrócił błąd ' + res.status);
     const data = await res.json();
-    
+    let msg;
+
     if (isV3 && (data.la || data.en)) {
-        if (data.la) localStorage.setItem('lat_v2_la', JSON.stringify(data.la));
-        if (data.en) localStorage.setItem('lat_v2_en', JSON.stringify(data.en));
-        
-        let curData = data[state.lang] || {words: [], sess: []};
-        state.words = curData.words || [];
-        state.sess = curData.sess || [];
-        state.cloudMsg = "Pobrano wszystkie języki!";
+      for (const l of Object.keys(PROFILES)) {
+        if (data[l]) localStorage.setItem('lat_v2_' + l, JSON.stringify({ words: normWords(data[l].words), sess: data[l].sess || [] }));
+      }
+      loadData();
+      msg = "Pobrano wszystkie języki!";
     } else if (data.words) {
-        state.words = data.words;
-        state.sess = data.sess || [];
-        saveData();
-        state.cloudMsg = "Pobrano starszą wersję zapisu!";
+      state.words = normWords(data.words);
+      state.sess = data.sess || [];
+      saveData();
+      msg = "Pobrano starszą wersję zapisu!";
     } else {
-        state.cloudMsg = "Plik na dysku jest uszkodzony.";
+      msg = "Plik na dysku jest uszkodzony.";
     }
-    state.screenKey++; 
-  } catch(e) { state.cloudMsg = "Błąd sieci: " + e.message; }
-  render();
+    state.game = null; gs = {}; state.screenKey++;
+    gBusy = false;
+    setCloudMsg(msg);
+  } catch(e) { gBusy = false; setCloudMsg("Błąd: " + e.message); }
 }
 
 // Init
